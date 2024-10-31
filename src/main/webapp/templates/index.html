@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Todo</title>
+</head>
+<body>
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Description</th>
+            <th>Status</th>
+            <th></th>
+            <th></th>
+        </tr>
+        <tr th:each="task : ${tasks.content}">
+            <td th:text="${task.id}">id</td>
+            <td th:text="${task.description}">description</td>
+            <td th:text="${task.status.name()}">status</td>
+            <td>
+                <form th:data-taskToEdit="${task}" onsubmit="showEditForm(this.getAttribute(`data-taskToEdit`));return false">
+                    <button type="submit">Edit</button>
+                </form>
+            </td>
+            <td>
+                <form th:data-taskToDelete="${task.id}" onsubmit="deleteTask(this.getAttribute(`data-taskToDelete`));return false">
+                    <button type="submit">Delete</button>
+                </form>
+            </td>
+        </tr>
+    </table>
+    <form onsubmit="createTask();return false">
+        <div>Add new task:</div>
+        <label for="createFormDescription">
+            <input id="createFormDescription" type="text" name="description">
+        </label><br>
+        <label for="createFormStatus">
+            <select id="createFormStatus" name="status">
+                <option th:each="status : ${statuses}"
+                        th:value="${status}"
+                        th:text="${status}">Status name:</option>
+            </select>
+        </label>
+        <button type="submit">Save</button>
+    </form>
+    <form id="editForm" onsubmit="editTask();return false" hidden>
+        <div>Edit this task:</div>
+        <label for="editFormTaskId">
+            <input id="editFormTaskId" type="number" name="taskId" onkeydown="return false">
+        </label><br>
+        <label for="editFormDescription">
+            <input id="editFormDescription" type="text" name="description">
+        </label><br>
+        <label for="editFormStatus">
+            <select id="editFormStatus" name="status">
+                <option th:each="status : ${statuses}"
+                        th:value="${status}"
+                        th:text="${status}">Status name:</option>
+            </select>
+        </label>
+        <button type="submit">Done</button>
+    </form>
+    <hr>
+    <form id="paginationForm" action="/">
+        <label for="size">Enter task's amount per page
+            <input id="size" type="number" name="size" th:value="${tasks.metadata.size}">
+        </label>
+        <label for="page">
+            <input id="page" type="number" name="page" hidden th:value="${tasks.metadata.page}">
+        </label>
+        <button type="submit">Done</button>
+    </form>
+    <div>
+        <span th:each="i : ${#numbers.sequence( 1, pageCount)}">
+            <button th:data-page="${i}" onclick="setPageAndSubmit(this.getAttribute(`data-page`))" th:text="${i}">Page number</button>
+        </span>
+    </div>
+    <script th:inline="javascript">
+
+    </script>
+    <script>
+
+        function setPageAndSubmit(number) {
+            let pageInput = document.getElementById("page");
+            let paginationForm = document.getElementById("paginationForm");
+            pageInput.value = number - 1;
+            paginationForm.submit();
+        }
+
+        function createTask() {
+            let description = document.getElementById("createFormDescription").value;
+            let status = document.getElementById("createFormStatus").value;
+
+            let body = 'description=' + encodeURIComponent(description) +
+                '&status=' + encodeURIComponent(status);
+
+            let createTaskRequest = new XMLHttpRequest();
+            createTaskRequest.open("POST", "/");
+            createTaskRequest.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+            createTaskRequest.send(body);
+            createTaskRequest.onload = function () {
+                window.location.reload();
+            }
+        }
+
+        function showEditForm(string) {
+            let task = {};
+            let editForm = document.getElementById("editForm");
+            let taskId = document.getElementById("editFormTaskId");
+            let taskDescription = document.getElementById("editFormDescription");
+            let taskStatus = document.getElementById("editFormStatus");
+            let properties = string.slice(string.indexOf("(") + 1, string.indexOf(")")).split(", ");
+            editForm.removeAttribute("hidden");
+
+            properties.forEach(function(property) {
+                let entry = property.split("=");
+                task[entry[0]] = entry[1];
+            });
+            taskId.value = task.id;
+            taskDescription.value = task.description;
+            taskStatus.value = task.status;
+        }
+
+        function editTask() {
+            let taskId = document.getElementById("editFormTaskId").value;
+            let taskDescription = document.getElementById("editFormDescription").value;
+            let taskStatus = document.getElementById("editFormStatus").value;
+            let paramString = "?description=" + taskDescription + "&status=" + taskStatus;
+
+            let editTaskRequest = new XMLHttpRequest();
+            editTaskRequest.open("PUT", "/" + taskId + paramString);
+            editTaskRequest.setRequestHeader("Content-type", "text/html;charset=UTF-8");
+            editTaskRequest.send();
+            editTaskRequest.onload = function () {
+                window.location.reload();
+            }
+        }
+
+        function deleteTask(id) {
+            let deleteTaskRequest = new XMLHttpRequest();
+            deleteTaskRequest.open("DELETE", `/${id}`);
+            deleteTaskRequest.send();
+            deleteTaskRequest.onload = function () {
+                window.location.reload();
+            }
+        }
+    </script>
+</body>
+</html>

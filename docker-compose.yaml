@@ -1,0 +1,31 @@
+version: "3.9"
+
+services:
+  server:
+    build: /
+    ports:
+      - "8081:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres
+    environment:
+      POSTGRES_DB: "jrdb"
+      POSTGRES_USER: "alexprokopiev"
+      POSTGRES_PASSWORD: "admin"
+      PGDATA: "/var/lib/postgresql/data"
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_vol:/var/lib/postgres
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U alexprokopiev -d jrdb" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+ db_vol:
